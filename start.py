@@ -3,6 +3,8 @@ import time
 import pigpio as pigpio
 import paho.mqtt.client as mqtt
 import json
+import devices.LED as leds
+
 pi = pigpio.pi("raspberrypi.local")       # pi1 accesses the local Pi's GPIO
 
 
@@ -16,10 +18,9 @@ def on_message(client, userdata, message):
     if msg["command"] == "LED":
         pin = int(msg["args"]["PIN"])
         power = int(msg["args"]["POWER"])
-        if power > 50:
-            pi.write(pin, 1)
-        else:
-            pi.write(pin, 0)
+
+        led = leds.LED(pi, {'ANODE': pin})
+        led.power(power)
 
 
 mqttc = mqtt.Client(transport="websockets")

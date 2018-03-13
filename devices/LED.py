@@ -7,7 +7,7 @@ class LED:
     pinMap = []
     pi: pigpio.pi = None
 
-    def __init__(self, pi, pin_map):
+    def __init__(self, pi: pigpio.pi, pin_map):
         self.pinMap = pin_map
         self.pi = pi
 

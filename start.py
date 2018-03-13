@@ -1,33 +1,44 @@
 import time
-
 import pigpio as pigpio
 import paho.mqtt.client as mqtt
 import json
-import devices.LED as leds
+from devices.LED import LED
+from devices.TiltSwitch import TiltSwitch
 
-pi = pigpio.pi("raspberrypi.local")       # pi1 accesses the local Pi's GPIO
 
+RASPBERRY_PI_ADDRESS = "192.168.0.101"
+
+pi = pigpio.pi(RASPBERRY_PI_ADDRESS)       # pi1 accesses the local Pi's GPIO
+
+sensors = {}
+
+mqttc: mqtt.Client = mqtt.Client(transport='websockets')
 
 def on_message(client, userdata, message):
-    print("message received ", str(message.payload.decode("utf-8")))
-    print("message topic=", message.topic)
-    print("message qos=", message.qos)
-    print("message retain flag=", message.retain)
+    #print("message received ", str(message.payload.decode("utf-8")))
+    #print("message topic=", message.topic)
+    #print("message qos=", message.qos)
+    #print("message retain flag=", message.retain)
 
     msg = json.loads(str(message.payload.decode("utf-8")))
+
     if msg["command"] == "LED":
         pin = int(msg["args"]["PIN"])
         power = int(msg["args"]["POWER"])
 
-        led = leds.LED(pi, {'ANODE': pin})
+        led = LED(pi, {'ANODE': pin})
         led.power(power)
+    elif msg["command"] == "SUBSCRIBE":
+        device = msg["args"]["DEVICE"]
+        if device == "TILT_SWITCH":
+            sensors[msg["args"]["ALIAS"]] = TiltSwitch(pi, mqttc, int(msg["args"]["PIN"]))
 
 
-mqttc = mqtt.Client(transport="websockets")
 mqttc.on_message = on_message
 # Uncomment to enable debug messages
-mqttc.connect("raspberrypi.local", 9001, 60)
-mqttc.subscribe("hello/world", 0)
+mqttc.connect(RASPBERRY_PI_ADDRESS, 9001, 60)
+mqttc.subscribe("rpi/devices/actuators/#", 1)
+mqttc.subscribe("rpi/subscription", 1)
 
 mqttc.loop_forever()
 

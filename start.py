@@ -3,14 +3,17 @@ import pigpio as pigpio
 import paho.mqtt.client as mqtt
 import json
 from devices.LED import LED
+from devices.MotorDriverTB6612FNG import MotorDriverTB6612FNG, MotorSelection, FNGMotor
 from devices.TiltSwitch import TiltSwitch
 
 
-RASPBERRY_PI_ADDRESS = "192.168.0.101"
+RASPBERRY_PI_ADDRESS = "192.168.0.151"
 
 pi = pigpio.pi(RASPBERRY_PI_ADDRESS)       # pi1 accesses the local Pi's GPIO
 
+
 sensors = {}
+actuators = {}
 
 mqttc: mqtt.Client = mqtt.Client(transport='websockets')
 
@@ -25,9 +28,39 @@ def on_message(client, userdata, message):
     if msg["command"] == "LED":
         pin = int(msg["args"]["PIN"])
         power = int(msg["args"]["POWER"])
-
         led = LED(pi, {'ANODE': pin})
         led.power(power)
+    if msg["command"] == "MOTOR":
+        name = msg["args"]["MOTOR_NAME"]
+        power = int(msg["args"]["POWER"])
+        motor: FNGMotor = actuators[name]
+
+        if power > 0:
+            motor.forward(power)
+        else:
+            motor.reverse(abs(power))
+
+    elif msg["command"] == "INIT":
+        pinPWMA = int(msg["args"]["PWMA"])
+        pinPWMB = int(msg["args"]["PWMB"])
+        pinAIN1 = int(msg["args"]["AIN1"])
+        pinAIN2 = int(msg["args"]["AIN2"])
+        pinBIN1 = int(msg["args"]["BIN1"])
+        pinBIN2 = int(msg["args"]["BIN2"])
+        pinSTBY = int(msg["args"]["STBY"])
+        pin_map = {
+            'PWMA': pinPWMA,
+            'PWMB': pinPWMB,
+            'AIN1': pinAIN1,
+            'AIN2': pinAIN2,
+            'BIN1': pinBIN1,
+            'BIN2': pinBIN2,
+            'STBY': pinSTBY,
+        }
+        driver = MotorDriverTB6612FNG(pi, pin_map)
+        actuators[msg["args"]["MOTORA_NAME"]] = driver.get_motor(MotorSelection.MotorA)
+        actuators[msg["args"]["MOTORB_NAME"]] = driver.get_motor(MotorSelection.MotorB)
+
     elif msg["command"] == "SUBSCRIBE":
         device = msg["args"]["DEVICE"]
         if device == "TILT_SWITCH":
@@ -39,6 +72,7 @@ mqttc.on_message = on_message
 mqttc.connect(RASPBERRY_PI_ADDRESS, 9001, 60)
 mqttc.subscribe("rpi/devices/actuators/#", 1)
 mqttc.subscribe("rpi/subscription", 1)
+mqttc.subscribe("rpi/initialization", 1)
 
 mqttc.loop_forever()
 

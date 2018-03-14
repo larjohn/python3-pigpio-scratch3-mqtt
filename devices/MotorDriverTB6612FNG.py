@@ -29,10 +29,6 @@ class MotorDriverTB6612FNG:
 
     pinPWMA = None
     pinPWMB = None
-    pinAO1 = None
-    pinAO2 = None
-    pinBO1 = None
-    pinBO2 = None
     pinAIN1 = None
     pinAIN2 = None
     pinBIN1 = None
@@ -46,10 +42,6 @@ class MotorDriverTB6612FNG:
         self.pi = pi
         self.pinPWMA = pin_map["PWMA"]
         self.pinPWMB = pin_map["PWMB"]
-        self.pinAO1 = pin_map["AO1"]
-        self.pinAO2 = pin_map["AO2"]
-        self.pinBO1 = pin_map["BO1"]
-        self.pinBO2 = pin_map["BO2"]
         self.pinAIN1 = pin_map["AIN1"]
         self.pinAIN2 = pin_map["AIN2"]
         self.pinBIN1 = pin_map["BIN1"]
@@ -109,3 +101,21 @@ class MotorDriverTB6612FNG:
     def pulse(self, pin, level):
         self.pi.set_PWM_dutycycle(pin, level * 255/100)
 
+    def get_motor(self, motor_selection: MotorSelection):
+        return FNGMotor(self, motor_selection)
+
+
+class FNGMotor:
+
+    driver: MotorDriverTB6612FNG
+    motor_selection: MotorSelection
+
+    def __init__(self, driver: MotorDriverTB6612FNG, motor_selection: MotorSelection):
+        self.driver = driver
+        self.motor_selection = motor_selection
+
+    def forward(self, speed):
+        self.driver.move(self.motor_selection, MotorDirection.Forward, speed)
+
+    def reverse(self, speed):
+        self.driver.move(self.motor_selection, MotorDirection.Reverse, speed)

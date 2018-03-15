@@ -4,12 +4,19 @@ import paho.mqtt.client as mqtt
 import json
 from devices.LED import LED
 from devices.MotorDriverTB6612FNG import MotorDriverTB6612FNG, MotorSelection, FNGMotor
+from devices.TemperatureSensorDS18B20 import TemperatureSensorDS18B20
 from devices.TiltSwitch import TiltSwitch
 
 
 RASPBERRY_PI_ADDRESS = "192.168.0.151"
 
 pi = pigpio.pi(RASPBERRY_PI_ADDRESS)       # pi1 accesses the local Pi's GPIO
+
+temp_sensor = TemperatureSensorDS18B20(pi)
+
+
+
+
 
 
 sensors = {}
